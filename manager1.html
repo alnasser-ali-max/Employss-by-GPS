@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم المدير</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090f;--s:#0f1624;--s2:#151f30;--s3:#1b2840;--border:#1e2d45;--accent:#00e5b0;--a2:#38bdf8;--danger:#f87171;--warn:#fbbf24;--success:#34d399;--text:#dde8f0;--muted:#4d6680;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,176,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,176,.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:99;padding:20px;}
+.lc{width:100%;max-width:360px;background:var(--s);border:1px solid var(--border);border-radius:22px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);}
+.lc-top{padding:32px;text-align:center;background:linear-gradient(160deg,#0a1628,#0d1e35);}
+.lc-top .ico{font-size:42px;margin-bottom:8px;display:block;}
+.lc-top h1{font-size:20px;font-weight:700;}
+.lc-top p{font-size:12px;color:var(--muted);margin-top:4px;}
+.lc-body{padding:24px 28px;}
+.fi{width:100%;padding:11px 13px;background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;outline:none;margin-bottom:10px;direction:rtl;}
+.fi:focus{border-color:var(--accent);}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#00b894);border:none;border-radius:10px;color:#000;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+.btn-login:hover{opacity:.9;}
+
+/* LAYOUT */
+#app{display:none;position:relative;z-index:1;}
+.sidebar{position:fixed;top:0;right:0;width:210px;height:100vh;background:var(--s);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:50;}
+.sb-logo{padding:18px 16px;border-bottom:1px solid var(--border);}
+.sb-brand{font-size:15px;font-weight:700;color:var(--accent);}
+.sb-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.sb-nav{flex:1;padding:8px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;margin-bottom:2px;border:none;background:transparent;width:100%;font-family:inherit;text-align:right;}
+.sb-item:hover{background:var(--s2);color:var(--text);}
+.sb-item.active{background:rgba(0,229,176,.1);color:var(--accent);font-weight:600;}
+.sb-bottom{padding:12px 8px;border-top:1px solid var(--border);}
+.btn-out{width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;}
+.btn-out:hover{border-color:var(--danger);color:var(--danger);}
+
+.main{margin-right:210px;padding:24px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;animation:fi .3s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.stat{background:var(--s);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat .lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.06em;margin-bottom:6px;}
+.stat .num{font-size:28px;font-weight:700;line-height:1;}
+
+/* CARD */
+.card{background:var(--s);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.ch{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.ch h3{font-size:13px;font-weight:600;}
+.cb{padding:16px;}
+
+/* TABLE */
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{padding:8px 13px;text-align:right;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.05em;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+td{padding:10px 13px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.ec{display:flex;align-items:center;gap:8px;}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;flex-shrink:0;}
+.badge{display:inline-flex;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;}
+.bp{background:rgba(52,211,153,.12);color:var(--success);}
+.ba{background:rgba(248,113,113,.12);color:var(--danger);}
+.bl{background:rgba(77,102,128,.12);color:var(--muted);}
+.hc{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(56,189,248,.1);color:var(--a2);}
+
+/* FORM */
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px;}
+.fl{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px;letter-spacing:.05em;}
+.finput{width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;outline:none;direction:rtl;}
+.finput:focus{border-color:var(--accent);}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:8px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.ba2{background:var(--accent);color:#000;}
+.ba2:hover{opacity:.85;}
+.bo{background:var(--s2);border:1px solid var(--border);color:var(--text);}
+.bo:hover{border-color:var(--accent);color:var(--accent);}
+.bd{background:var(--s2);border:1px solid rgba(248,113,113,.3);color:var(--danger);}
+.bd:hover{background:rgba(248,113,113,.1);}
+.bsm{padding:5px 10px;font-size:11px;}
+
+/* SETTINGS */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.sg{grid-template-columns:1fr;}}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.sr:last-child{border-bottom:none;}
+.sl{font-size:13px;font-weight:600;}
+.ss{font-size:11px;color:var(--muted);margin-top:2px;}
+.map-box{background:var(--s2);border:1px dashed var(--border);border-radius:9px;height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--muted);font-size:12px;position:relative;overflow:hidden;margin:10px 0;}
+.map-box::after{content:'';position:absolute;width:50px;height:50px;border-radius:50%;border:2px solid var(--accent);opacity:.2;animation:mp 2.5s ease-out infinite;}
+@keyframes mp{0%{transform:scale(.4);opacity:.5;}100%{transform:scale(2.5);opacity:0;}}
+
+/* FILTER */
+.fr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:150;display:flex;align-items:center;justify-content:center;padding:16px;}
+.mo.hidden{display:none;}
+.mb{background:var(--s);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;}
+.mb h3{font-size:16px;font-weight:700;margin-bottom:6px;}
+.mb p{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6;}
+.ma{display:flex;gap:8px;justify-content:flex-end;}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--s);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.5);opacity:0;transition:all .3s;z-index:200;display:flex;align-items:center;gap:8px;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* FB STATUS */
+.fbs{position:fixed;bottom:14px;right:14px;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--s);border:1px solid var(--border);border-radius:20px;padding:4px 10px;z-index:99;}
+.pd{width:6px;height:6px;border-radius:50%;}
+.pdg{background:var(--success);animation:p1 2s infinite;}
+.pdy{background:var(--warn);animation:p1 1.2s infinite;}
+.pdr{background:var(--danger);}
+@keyframes p1{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ERR BOX */
+#errBox{position:fixed;top:14px;left:14px;right:14px;background:#1a0505;border:1px solid var(--danger);border-radius:10px;padding:12px 14px;font-size:12px;color:#fca5a5;z-index:999;line-height:1.7;word-break:break-all;display:none;}
+
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="lc">
+    <div class="lc-top"><span class="ico">🏢</span><h1>لوحة تحكم المدير</h1><p>نظام الحضور الذكي GPS</p></div>
+    <div class="lc-body">
+      <input class="fi" id="lgU" placeholder="اسم المستخدم: admin"/>
+      <input class="fi" id="lgP" type="password" placeholder="كلمة المرور: 1234"/>
+      <button class="btn-login" onclick="doLogin()">دخول ←</button>
+    </div>
+  </div>
+</div>
+
+<!-- ERROR BOX -->
+<div id="errBox"></div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sb-logo"><div class="sb-brand">📍 حضور GPS</div><div class="sb-sub">لوحة تحكم المدير</div></div>
+    <div class="sb-nav">
+      <button class="sb-item active" onclick="go('today')"><span>📅</span>اليوم</button>
+      <button class="sb-item" onclick="go('history')"><span>📋</span>السجل</button>
+      <button class="sb-item" onclick="go('reports')"><span>📊</span>التقارير</button>
+      <button class="sb-item" onclick="go('employees')"><span>👥</span>الموظفون</button>
+      <button class="sb-item" onclick="go('settings')"><span>⚙️</span>الإعدادات</button>
+    </div>
+    <div class="sb-bottom"><button class="btn-out" onclick="doLogout()">تسجيل الخروج</button></div>
+  </div>
+
+  <div class="main">
+
+    <!-- TODAY -->
+    <div class="page active" id="pToday">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div><h1 style="font-size:20px;font-weight:700">حضور اليوم</h1><p style="font-size:12px;color:var(--muted)" id="todayStr">—</p></div>
+        <div style="display:flex;gap:8px"><button class="btn bo" onclick="loadToday()">🔄 تحديث</button><button class="btn bo" onclick="exportCSV()">⬇ CSV</button></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="lbl">حاضر</div><div class="num" id="stP" style="color:var(--success)">0</div></div>
+        <div class="stat"><div class="lbl">غائب</div><div class="num" id="stA" style="color:var(--danger)">0</div></div>
+        <div class="stat"><div class="lbl">انصرف</div><div class="num" id="stL" style="color:var(--muted)">0</div></div>
+        <div class="stat"><div class="lbl">متأخر</div><div class="num" id="stLt" style="color:var(--warn)">0</div></div>
+        <div class="stat"><div class="lbl">ساعات اليوم</div><div class="num" id="stH" style="color:var(--a2)">0</div></div>
+      </div>
+      <div class="card"><div class="ch"><h3>جدول الحضور</h3></div>
+        <div class="tw"><table><thead><tr><th>الموظف</th><th>القسم</th><th>حضور</th><th>انصراف</th><th>ساعات</th><th>مسافة</th><th>الحالة</th></tr></thead>
+        <tbody id="tToday"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">لا توجد سجلات</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="pHistory">
+      <div style="margin-bottom:20px"><h1 style="font-size:20px;font-weight:700">السجل التاريخي</h1></div>
+      <div class="card"><div class="ch"><h3>البحث</h3>
+        <div class="fr">
+          <input class="finput" type="date" id="hDate" onchange="loadHistory()" style="width:150px"/>
+          <input class="finput" type="text" id="hEmp" placeholder="بحث..." oninput="loadHistory()" style="width:150px"/>
+          <button class="btn bo bsm" onclick="document.getElementById('hDate').value='';document.getElementById('hEmp').value='';loadHistory()">مسح</button>
+        </div>
+      </div>
+      <div class="tw"><table><thead><tr><th>الموظف</th><th>التاريخ</th><th>حضور</th><th>انصراف</th><th>ساعات</th><th>مسافة</th><th>الحالة</th></tr></thead>
+      <tbody id="tHistory"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">لا توجد سجلات</td></tr></tbody></table></div></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="pReports">
+      <div style="margin-bottom:20px"><h1 style="font-size:20px;font-weight:700">التقارير</h1></div>
+      <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap" id="repPeriodBtns">
+        <button class="btn bo active-period" onclick="loadReports('week',this)">الأسبوع</button>
+        <button class="btn bo" onclick="loadReports('month',this)">الشهر</button>
+        <button class="btn bo" onclick="loadReports('all',this)">الكل</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="lbl">إجمالي الساعات</div><div class="num" id="rH" style="color:var(--accent)">0</div></div>
+        <div class="stat"><div class="lbl">أيام التأخير</div><div class="num" id="rL" style="color:var(--warn)">0</div></div>
+        <div class="stat"><div class="lbl">أيام العمل</div><div class="num" id="rD" style="color:var(--a2)">0</div></div>
+      </div>
+      <div class="card"><div class="ch"><h3>تفاصيل الموظفين</h3></div>
+      <div class="tw"><table><thead><tr><th>الموظف</th><th>القسم</th><th>أيام الحضور</th><th>تأخيرات</th><th>إجمالي الساعات</th><th>متوسط يومي</th></tr></thead>
+      <tbody id="tReports"></tbody></table></div></div>
+    </div>
+
+    <!-- EMPLOYEES -->
+    <div class="page" id="pEmployees">
+      <div style="margin-bottom:20px"><h1 style="font-size:20px;font-weight:700">إدارة الموظفين</h1></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="ch"><h3>➕ إضافة موظف جديد</h3></div>
+        <div class="cb">
+          <div class="fg">
+            <div><div class="fl">الاسم الكامل *</div><input class="finput" id="nName" placeholder="أحمد محمد"/></div>
+            <div><div class="fl">رقم الموظف *</div><input class="finput" id="nId" placeholder="EMP001"/></div>
+            <div><div class="fl">كلمة المرور *</div><input class="finput" id="nPass" type="password" placeholder="••••••"/></div>
+            <div><div class="fl">القسم</div><input class="finput" id="nDept" placeholder="خدمة العملاء"/></div>
+            <div><div class="fl">الجوال</div><input class="finput" id="nPhone" placeholder="05xxxxxxxx"/></div>
+          </div>
+          <button class="btn ba2" onclick="addEmp()">➕ إضافة</button>
+        </div>
+      </div>
+      <div class="card"><div class="ch"><h3>قائمة الموظفين</h3><span id="empCnt" style="font-size:11px;color:var(--muted)"></span></div>
+      <div class="tw"><table><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>القسم</th><th>الجوال</th><th>إجراءات</th></tr></thead>
+      <tbody id="tEmps"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">لا يوجد موظفون</td></tr></tbody></table></div></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="pSettings">
+      <div style="margin-bottom:20px"><h1 style="font-size:20px;font-weight:700">الإعدادات</h1></div>
+      <div class="sg">
+        <div>
+          <div class="card"><div class="ch"><h3>📍 موقع العمل</h3></div><div class="cb">
+            <div class="fl">الإحداثيات</div>
+            <div style="font-size:12px;font-weight:600;color:var(--a2);background:var(--s2);border-radius:7px;padding:8px 10px;margin-bottom:8px" id="wCoords">لم يُحدَّد</div>
+            <div class="map-box"><span style="font-size:24px">📍</span><span id="mapLbl">موقع العمل</span></div>
+            <div style="margin-bottom:12px">
+              <div class="fl">نطاق القبول: <span style="color:var(--accent);font-weight:700" id="radDisp">100</span> متر</div>
+              <input type="range" min="50" max="1000" step="50" value="100" id="radSlider" oninput="updRad(this.value)" style="width:100%;accent-color:var(--accent);margin-top:6px"/>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn ba2" onclick="setGPS()">📍 من GPS</button>
+              <button class="btn bo" onclick="openManual()">✏️ يدوي</button>
+            </div>
+          </div></div>
+        </div>
+        <div>
+          <div class="card"><div class="ch"><h3>🕐 أوقات الدوام</h3></div><div class="cb">
+            <div class="sr"><div><div class="sl">بداية الدوام</div></div><input class="finput" type="time" id="sStart" value="08:00" onchange="saveShift()" style="width:100px"/></div>
+            <div class="sr"><div><div class="sl">نهاية الدوام</div></div><input class="finput" type="time" id="sEnd" value="17:00" onchange="saveShift()" style="width:100px"/></div>
+            <div class="sr"><div><div class="sl">تأخير مسموح</div><div class="ss">دقيقة</div></div><input class="finput" type="number" id="sLate" value="15" min="0" style="width:70px" onchange="saveShift()"/></div>
+            <button class="btn ba2" style="margin-top:12px;width:100%" onclick="saveShift()">💾 حفظ</button>
+          </div></div>
+          <div class="card" style="margin-top:16px"><div class="ch"><h3>⚠️ البيانات</h3></div><div class="cb" style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn bo" onclick="exportCSV()">⬇ تصدير CSV</button>
+            <button class="btn bd" onclick="confirmClear()">🗑 مسح سجلات الحضور</button>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="mo hidden" id="mManual">
+  <div class="mb"><h3>إدخال موقع يدوي</h3><p>أدخل إحداثيات GPS لموقع العمل</p>
+    <div class="fl" style="margin-bottom:4px">خط العرض</div><input class="finput" id="mLat" placeholder="21.485811" style="margin-bottom:10px"/>
+    <div class="fl" style="margin-bottom:4px">خط الطول</div><input class="finput" id="mLng" placeholder="39.192505" style="margin-bottom:16px"/>
+    <div class="ma"><button class="btn bo" onclick="closeManual()">إلغاء</button><button class="btn ba2" onclick="saveManual()">حفظ</button></div>
+  </div>
+</div>
+
+<div class="mo hidden" id="mConfirm">
+  <div class="mb"><h3 id="cfT">تأكيد</h3><p id="cfM">هل أنت متأكد؟</p>
+    <div class="ma"><button class="btn bo" onclick="closeConfirm()">إلغاء</button><button class="btn bd" id="cfBtn">تأكيد</button></div>
+  </div>
+</div>
+
+<div id="toast"><span id="tI">✅</span><span id="tM"></span></div>
+<div class="fbs"><div class="pd pdy" id="fbDot"></div><span id="fbTxt">يتصل...</span></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ══════════════════════════════════
+// 🔥 Firebase Config
+// ══════════════════════════════════
+const FB_CONFIG = {
+  apiKey: "AIzaSyCA9li2HkqygTAp0rRqnCwLh2wZvTsQukI",
+  authDomain: "employees-d6766.firebaseapp.com",
+  projectId: "employees-d6766",
+  storageBucket: "employees-d6766.firebasestorage.app",
+  messagingSenderId: "353992589560",
+  appId: "1:353992589560:web:3ff21c94b58725b1e9fb0d"
+};
+// ══════════════════════════════════
+
+let db = null;
+let workLat = null, workLng = null, radius = 100;
+const MGMT_PASS = "1234";
+
+// ── COLORS ──
+const COLORS = ['#00e5b0','#38bdf8','#a78bfa','#fb923c','#f472b6'];
+const cf = n => COLORS[n.charCodeAt(0) % COLORS.length];
+
+// ── SETTINGS (local) ──
+const S = {
+  get: () => JSON.parse(localStorage.getItem('att_settings') || '{}'),
+  set: v => localStorage.setItem('att_settings', JSON.stringify(v))
+};
+
+// ── INIT ──
+function init() {
+  try {
+    firebase.initializeApp(FB_CONFIG);
+    db = firebase.firestore();
+    // اختبار اتصال بسيط
+    db.collection('employees').limit(1).get()
+      .then(() => setFB('g', 'متصل ✓'))
+      .catch(e => {
+        setFB('r', e.code || 'خطأ');
+        showErr('Firebase: ' + (e.code || e.message));
+      });
+  } catch(e) {
+    setFB('r', 'خطأ');
+    showErr('Init error: ' + e.message);
+  }
+  loadLocalSettings();
+}
+
+function setFB(c, t) {
+  const d = document.getElementById('fbDot');
+  d.className = 'pd ' + (c==='g'?'pdg':c==='r'?'pdr':'pdy');
+  document.getElementById('fbTxt').textContent = t;
+}
+
+function showErr(msg) {
+  const b = document.getElementById('errBox');
+  b.style.display = 'block';
+  b.innerHTML = '❌ ' + msg + ' <button onclick="this.parentElement.style.display=\'none\'" style="margin-right:10px;background:var(--danger);border:none;border-radius:5px;padding:3px 10px;color:#000;cursor:pointer;font-size:11px">إغلاق</button>';
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const u = document.getElementById('lgU').value.trim();
+  const p = document.getElementById('lgP').value;
+  const s = S.get();
+  const pass = s.mgPass || MGMT_PASS;
+  if ((u === 'admin' || u === 'مدير') && p === pass) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadToday();
+  } else {
+    toast('❌', 'بيانات خاطئة — admin / 1234');
+  }
+}
+
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+// ── NAVIGATION ──
+function go(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('p' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
+  const pages = ['today','history','reports','employees','settings'];
+  document.querySelectorAll('.sb-item')[pages.indexOf(p)]?.classList.add('active');
+  if (p === 'today') loadToday();
+  if (p === 'history') loadHistory();
+  if (p === 'reports') loadReports('week');
+  if (p === 'employees') loadEmps();
+}
+
+// ── TODAY ──
+async function loadToday() {
+  document.getElementById('todayStr').textContent = new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  if (!db) return;
+  try {
+    const start = new Date(); start.setHours(0,0,0,0);
+    const [snapR, snapE] = await Promise.all([
+      db.collection('attendance').where('time', '>=', firebase.firestore.Timestamp.fromDate(start)).get(),
+      db.collection('employees').get()
+    ]);
+
+    const recs = snapR.docs.map(d => {
+      const r = d.data();
+      return {...r, time: r.time?.toDate ? r.time.toDate().toISOString() : r.time};
+    });
+    const emps = snapE.docs.map(d => d.data());
+
+    buildTodayTable(recs, emps);
+    setFB('g', 'متصل ✓');
+  } catch(e) {
+    setFB('r', e.code || 'خطأ');
+    showErr('loadToday: ' + (e.code || e.message));
+  }
+}
+
+function buildTodayTable(recs, emps) {
+  const today = new Date().toDateString();
+  const map = {};
+  recs.forEach(r => {
+    if (!map[r.empId]) map[r.empId] = {name:r.empName,dept:r.dept||'—',inT:null,outT:null,dist:0,late:false,hrs:0};
+    if (r.type==='in') { map[r.empId].inT=r.time; map[r.empId].dist=r.distance||0; map[r.empId].late=r.late||false; }
+    if (r.type==='out') { map[r.empId].outT=r.time; map[r.empId].hrs=parseFloat(r.hoursWorked)||0; }
+  });
+  const list = Object.values(map);
+  const present = list.filter(e=>e.inT&&!e.outT).length;
+  const left = list.filter(e=>e.inT&&e.outT).length;
+  const late = list.filter(e=>e.late).length;
+  const absent = Math.max(0, emps.length - list.length);
+  const hrs = list.reduce((a,e)=>a+e.hrs,0).toFixed(1);
+  document.getElementById('stP').textContent = present;
+  document.getElementById('stA').textContent = absent;
+  document.getElementById('stL').textContent = left;
+  document.getElementById('stLt').textContent = late;
+  document.getElementById('stH').textContent = hrs;
+
+  const tb = document.getElementById('tToday');
+  tb.innerHTML = list.length ? list.map(e => {
+    const st = e.outT?'l':e.inT?'p':'a';
+    const stL = {p:'✅ حاضر',a:'⭕ غائب',l:'🚪 انصرف'}[st];
+    const hrsD = e.hrs ? `<span class="hc">${e.hrs}س</span>` : e.inT&&!e.outT ? `<span class="hc" style="background:rgba(52,211,153,.1);color:var(--success)">جارٍ</span>` : '—';
+    return `<tr>
+      <td><div class="ec"><div class="av" style="background:${cf(e.name)}">${e.name[0]}</div><span style="font-weight:600">${e.name}</span></div></td>
+      <td style="color:var(--muted)">${e.dept}</td>
+      <td>${e.inT?new Date(e.inT).toLocaleTimeString('ar-SA'):'—'}</td>
+      <td>${e.outT?new Date(e.outT).toLocaleTimeString('ar-SA'):'—'}</td>
+      <td>${hrsD}</td>
+      <td>${e.dist?e.dist+' م':'—'}</td>
+      <td><span class="badge ${st==='p'?'bp':st==='a'?'ba':'bl'}">${stL}</span>${e.late?' <span class="badge" style="background:rgba(251,191,36,.12);color:var(--warn)">متأخر</span>':''}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">لا توجد سجلات اليوم</td></tr>';
+}
+
+// ── HISTORY ──
+async function loadHistory() {
+  if (!db) return;
+  try {
+    const snap = await db.collection('attendance').get();
+    let recs = snap.docs.map(d => {
+      const r = d.data();
+      return {...r, time: r.time?.toDate ? r.time.toDate().toISOString() : r.time};
+    });
+    const fd = document.getElementById('hDate').value;
+    const fe = (document.getElementById('hEmp').value||'').toLowerCase();
+    if (fd) recs = recs.filter(r => r.time?.slice(0,10) === fd);
+    if (fe) recs = recs.filter(r => r.empName?.toLowerCase().includes(fe));
+
+    const grouped = {};
+    recs.forEach(r => {
+      const d = new Date(r.time).toDateString();
+      const k = r.empId + '|' + d;
+      if (!grouped[k]) grouped[k] = {name:r.empName,dept:r.dept||'—',dateISO:new Date(r.time).toLocaleDateString('ar-SA'),inT:null,outT:null,dist:0,late:false,hrs:0};
+      if (r.type==='in') { grouped[k].inT=r.time; grouped[k].dist=r.distance||0; grouped[k].late=r.late||false; }
+      if (r.type==='out') { grouped[k].outT=r.time; grouped[k].hrs=parseFloat(r.hoursWorked)||0; }
+    });
+
+    const list = Object.values(grouped).reverse();
+    const tb = document.getElementById('tHistory');
+    tb.innerHTML = list.length ? list.map(e => {
+      const st = e.outT?'l':e.inT?'p':'a';
+      return `<tr>
+        <td><div class="ec"><div class="av" style="background:${cf(e.name)}">${e.name[0]}</div><span style="font-weight:600">${e.name}</span></div></td>
+        <td style="color:var(--muted)">${e.dateISO}</td>
+        <td>${e.inT?new Date(e.inT).toLocaleTimeString('ar-SA'):'—'}</td>
+        <td>${e.outT?new Date(e.outT).toLocaleTimeString('ar-SA'):'—'}</td>
+        <td>${e.hrs?`<span class="hc">${e.hrs}س</span>`:'—'}</td>
+        <td>${e.dist?e.dist+' م':'—'}</td>
+        <td><span class="badge ${st==='p'?'bp':st==='a'?'ba':'bl'}">${{p:'✅ حاضر',a:'⭕ غائب',l:'🚪 انصرف'}[st]}</span></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">لا توجد سجلات</td></tr>';
+  } catch(e) { showErr('loadHistory: ' + (e.code||e.message)); }
+}
+
+// ── REPORTS ──
+async function loadReports(period, btn) {
+  if (btn) {
+    document.querySelectorAll('#repPeriodBtns .btn').forEach(b => b.style.borderColor='');
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+  }
+  if (!db) return;
+  try {
+    const snap = await db.collection('attendance').get();
+    let recs = snap.docs.map(d => {
+      const r = d.data();
+      return {...r, time: r.time?.toDate ? r.time.toDate().toISOString() : r.time};
+    });
+
+    const now = new Date();
+    if (period === 'week') { const s=new Date(now); s.setDate(now.getDate()-7); recs=recs.filter(r=>new Date(r.time)>=s); }
+    if (period === 'month') { const s=new Date(now.getFullYear(),now.getMonth(),1); recs=recs.filter(r=>new Date(r.time)>=s); }
+
+    const map = {};
+    recs.forEach(r => {
+      if (!map[r.empId]) map[r.empId]={name:r.empName,dept:r.dept||'—',days:new Set(),hrs:0,late:0};
+      if (r.type==='in') { map[r.empId].days.add(new Date(r.time).toDateString()); if(r.late) map[r.empId].late++; }
+      if (r.type==='out') map[r.empId].hrs += parseFloat(r.hoursWorked)||0;
+    });
+
+    const list = Object.values(map).map(e=>({...e,days:e.days.size})).sort((a,b)=>b.hrs-a.hrs);
+    const totalHrs = list.reduce((a,e)=>a+e.hrs,0);
+    const totalDays = new Set(recs.map(r=>new Date(r.time).toDateString())).size;
+    const totalLate = list.reduce((a,e)=>a+e.late,0);
+
+    document.getElementById('rH').textContent = totalHrs.toFixed(1);
+    document.getElementById('rL').textContent = totalLate;
+    document.getElementById('rD').textContent = totalDays;
+
+    document.getElementById('tReports').innerHTML = list.length ? list.map(e => `<tr>
+      <td><div class="ec"><div class="av" style="background:${cf(e.name)}">${e.name[0]}</div><span style="font-weight:600">${e.name}</span></div></td>
+      <td style="color:var(--muted)">${e.dept}</td>
+      <td><span class="hc">${e.days}</span></td>
+      <td>${e.late?`<span class="badge" style="background:rgba(251,191,36,.12);color:var(--warn)">${e.late}</span>`:'—'}</td>
+      <td><span class="hc">${e.hrs.toFixed(1)}س</span></td>
+      <td style="color:var(--muted)">${e.days?(e.hrs/e.days).toFixed(1)+'س':'—'}</td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">لا توجد بيانات</td></tr>';
+  } catch(e) { showErr('loadReports: ' + (e.code||e.message)); }
+}
+
+// ── EMPLOYEES ──
+async function loadEmps() {
+  if (!db) return;
+  try {
+    const snap = await db.collection('employees').get();
+    const emps = snap.docs.map(d => ({...d.data(), _id: d.id}));
+    document.getElementById('empCnt').textContent = emps.length + ' موظف';
+    document.getElementById('tEmps').innerHTML = emps.length ? emps.map(e => `<tr>
+      <td><div class="ec"><div class="av" style="background:${cf(e.name)}">${e.name[0]}</div><div><div style="font-weight:600">${e.name}</div></div></div></td>
+      <td style="color:var(--muted)">${e.id}</td>
+      <td>${e.dept||'—'}</td>
+      <td style="color:var(--muted)">${e.phone||'—'}</td>
+      <td><button class="btn bd bsm" onclick="delEmp('${e._id}','${e.name}')">🗑 حذف</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">لا يوجد موظفون</td></tr>';
+  } catch(e) { showErr('loadEmps: ' + (e.code||e.message)); }
+}
+
+async function addEmp() {
+  const name = document.getElementById('nName').value.trim();
+  const id   = document.getElementById('nId').value.trim();
+  const pass = document.getElementById('nPass').value.trim();
+  const dept = document.getElementById('nDept').value.trim();
+  const phone= document.getElementById('nPhone').value.trim();
+
+  if (!name||!id||!pass) { toast('⚠️','الاسم والرقم وكلمة المرور مطلوبة'); return; }
+  if (!db) { toast('❌','لا يوجد اتصال بقاعدة البيانات'); return; }
+
+  try {
+    // تحقق من التكرار
+    const existing = await db.collection('employees').where('id','==',id).get();
+    if (!existing.empty) { toast('⚠️','رقم الموظف موجود مسبقاً'); return; }
+
+    await db.collection('employees').add({
+      name: name,
+      id: id,
+      password: pass,
+      dept: dept || '—',
+      phone: phone || '—'
+    });
+
+    ['nName','nId','nPass','nDept','nPhone'].forEach(i => document.getElementById(i).value = '');
+    loadEmps();
+    toast('✅', 'تمت إضافة ' + name);
+  } catch(e) {
+    toast('❌', 'فشل الإضافة');
+    showErr('addEmp: ' + (e.code||e.message));
+  }
+}
+
+async function delEmp(docId, name) {
+  if (!db) return;
+  try {
+    await db.collection('employees').doc(docId).delete();
+    loadEmps();
+    toast('🗑', 'تم حذف ' + name);
+  } catch(e) { showErr('delEmp: ' + (e.code||e.message)); }
+}
+
+// ── SETTINGS ──
+function loadLocalSettings() {
+  const s = S.get();
+  workLat = s.lat || null; workLng = s.lng || null; radius = s.radius || 100;
+  document.getElementById('radSlider').value = radius;
+  document.getElementById('radDisp').textContent = radius;
+  if (s.shiftStart) document.getElementById('sStart').value = s.shiftStart;
+  if (s.shiftEnd) document.getElementById('sEnd').value = s.shiftEnd;
+  if (s.late) document.getElementById('sLate').value = s.late;
+  updCoordsDisp();
+}
+
+function saveShift() {
+  const s = S.get();
+  s.shiftStart = document.getElementById('sStart').value;
+  s.shiftEnd = document.getElementById('sEnd').value;
+  s.late = document.getElementById('sLate').value;
+  S.set(s); toast('💾','تم حفظ أوقات الدوام');
+}
+
+function updRad(v) {
+  radius = parseInt(v);
+  document.getElementById('radDisp').textContent = v;
+  const s = S.get(); s.radius = radius; S.set(s);
+  // حفظ في Firestore أيضاً
+  if (db) db.collection('settings').doc('work').set({radius}, {merge:true}).catch(()=>{});
+}
+
+function setGPS() {
+  if (!navigator.geolocation) { useDefault(); return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    workLat = p.coords.latitude; workLng = p.coords.longitude;
+    saveWorkLoc(); toast('📍','تم تعيين موقع العمل');
+  }, useDefault);
+}
+
+function useDefault() {
+  workLat = 21.485811; workLng = 39.192505;
+  saveWorkLoc(); toast('📍','موقع افتراضي (جدة)');
+}
+
+function saveWorkLoc() {
+  const s = S.get(); s.lat = workLat; s.lng = workLng; S.set(s);
+  if (db) db.collection('settings').doc('work').set({lat:workLat, lng:workLng, radius}, {merge:true}).catch(()=>{});
+  updCoordsDisp();
+}
+
+function updCoordsDisp() {
+  if (workLat && workLng) {
+    document.getElementById('wCoords').textContent = `${workLat.toFixed(6)}° ، ${workLng.toFixed(6)}°`;
+    document.getElementById('mapLbl').textContent = 'موقع العمل محدد ✅';
+  }
+}
+
+function openManual() { document.getElementById('mManual').classList.remove('hidden'); }
+function closeManual() { document.getElementById('mManual').classList.add('hidden'); }
+function saveManual() {
+  const la = parseFloat(document.getElementById('mLat').value);
+  const lo = parseFloat(document.getElementById('mLng').value);
+  if (isNaN(la)||isNaN(lo)) { toast('❌','إحداثيات غير صحيحة'); return; }
+  workLat=la; workLng=lo; saveWorkLoc(); closeManual(); toast('📍','تم حفظ الموقع');
+}
+
+// ── EXPORT ──
+async function exportCSV() {
+  if (!db) return;
+  try {
+    const snap = await db.collection('attendance').get();
+    const recs = snap.docs.map(d => {
+      const r = d.data();
+      return {...r, time: r.time?.toDate ? r.time.toDate().toISOString() : r.time};
+    });
+    if (!recs.length) { toast('⚠️','لا توجد بيانات'); return; }
+    const h = 'الاسم,رقم الموظف,القسم,النوع,التاريخ,الوقت,المسافة,الساعات,متأخر\n';
+    const rows = recs.map(r => {
+      const d = new Date(r.time);
+      return `${r.empName},${r.empId},${r.dept||'—'},${r.type==='in'?'حضور':'انصراف'},${d.toLocaleDateString('ar-SA')},${d.toLocaleTimeString('ar-SA')},${r.distance||0},${r.hoursWorked||''},${r.late?'نعم':''}`;
+    }).join('\n');
+    const b = new Blob(['\uFEFF'+h+rows], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(b);
+    a.download=`attendance_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    toast('⬇','تم التصدير');
+  } catch(e) { showErr('exportCSV: ' + (e.code||e.message)); }
+}
+
+// ── CLEAR ──
+function confirmClear() {
+  document.getElementById('cfT').textContent = 'مسح سجلات الحضور';
+  document.getElementById('cfM').textContent = 'سيتم حذف جميع سجلات الحضور نهائياً. هل أنت متأكد؟';
+  document.getElementById('cfBtn').onclick = async () => {
+    closeConfirm();
+    if (!db) return;
+    try {
+      const snap = await db.collection('attendance').get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      loadToday(); toast('🗑','تم المسح');
+    } catch(e) { showErr('clear: ' + (e.code||e.message)); }
+  };
+  document.getElementById('mConfirm').classList.remove('hidden');
+}
+function closeConfirm() { document.getElementById('mConfirm').classList.add('hidden'); }
+
+// ── TOAST ──
+let tT;
+function toast(i, m) {
+  document.getElementById('tI').textContent = i;
+  document.getElementById('tM').textContent = m;
+  const t = document.getElementById('toast');
+  t.classList.add('show'); clearTimeout(tT);
+  tT = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── START ──
+init();
+setInterval(() => {
+  if (document.getElementById('pToday').classList.contains('active')) loadToday();
+}, 15000);
+</script>
+</body>
+</html>
