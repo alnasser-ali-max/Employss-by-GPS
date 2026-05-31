@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم المدير — نظام الحضور</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f;--surface:#0f1624;--s2:#151f30;--s3:#1b2840;
+  --border:#1e2d45;--accent:#00e5b0;--a2:#38bdf8;--a3:#a78bfa;
+  --danger:#f87171;--warn:#fbbf24;--success:#34d399;
+  --text:#dde8f0;--muted:#4d6680;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,176,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,176,.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:99;padding:20px;}
+.login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);}
+.lc-top{padding:32px;text-align:center;background:linear-gradient(160deg,#0a1628,#0d1e35);}
+.lc-top .ico{font-size:42px;margin-bottom:8px;display:block;}
+.lc-top h1{font-size:20px;font-weight:700;margin-bottom:4px;}
+.lc-top p{font-size:12px;color:var(--muted);}
+.lc-body{padding:24px 28px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:.06em;}
+.field input{width:100%;padding:11px 13px;background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border .2s;}
+.field input:focus{border-color:var(--accent);}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#00b894);border:none;border-radius:10px;color:#000;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .25s;}
+.btn-login:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,229,176,.25);}
+
+/* ── LAYOUT ── */
+#mainApp{display:none;position:relative;z-index:1;}
+.sidebar{position:fixed;top:0;right:0;width:220px;height:100vh;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;z-index:50;}
+.sb-logo{padding:20px 18px;border-bottom:1px solid var(--border);}
+.sb-logo .brand{font-size:16px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:8px;}
+.sb-logo .sub{font-size:10px;color:var(--muted);margin-top:3px;}
+.sb-nav{flex:1;padding:10px 10px;overflow-y:auto;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;margin-bottom:2px;border:none;background:transparent;width:100%;font-family:inherit;text-align:right;}
+.sb-item:hover{background:var(--s2);color:var(--text);}
+.sb-item.active{background:rgba(0,229,176,.1);color:var(--accent);font-weight:600;}
+.sb-item .ico{font-size:16px;flex-shrink:0;}
+.sb-bottom{padding:14px 10px;border-top:1px solid var(--border);}
+.user-chip{display:flex;align-items:center;gap:9px;padding:8px 10px;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#000;flex-shrink:0;}
+.user-chip .name{font-size:12px;font-weight:600;}
+.user-chip .role{font-size:10px;color:var(--muted);}
+.btn-out{width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;transition:all .2s;margin-top:8px;}
+.btn-out:hover{border-color:var(--danger);color:var(--danger);}
+
+.main{margin-right:220px;padding:28px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── HEADERS ── */
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:22px;font-weight:700;}
+.page-header p{font-size:13px;color:var(--muted);margin-top:3px;}
+.ph-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;top:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:var(--sc,var(--accent));opacity:.06;pointer-events:none;}
+.stat .lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.06em;margin-bottom:8px;}
+.stat .num{font-size:30px;font-weight:700;color:var(--sc,var(--accent));line-height:1;}
+.stat .sub{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.card-head h3{font-size:13px;font-weight:600;}
+.card-body{padding:18px;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{padding:9px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.06em;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+td{padding:11px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;}
+.b-present{background:rgba(52,211,153,.12);color:var(--success);}
+.b-absent{background:rgba(248,113,113,.12);color:var(--danger);}
+.b-left{background:rgba(77,102,128,.12);color:var(--muted);}
+.b-late{background:rgba(251,191,36,.12);color:var(--warn);}
+.hours-chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(56,189,248,.1);color:var(--a2);}
+
+/* ── EMP CELL ── */
+.emp-cell{display:flex;align-items:center;gap:8px;}
+.mini-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;flex-shrink:0;}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px;}
+.fg-full{grid-column:1/-1;}
+.finput{width:100%;padding:10px 13px;background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border .2s;direction:rtl;}
+.finput:focus{border-color:var(--accent);}
+.flabel{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:.05em;}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 18px;border-radius:8px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-accent{background:var(--accent);color:#000;}
+.btn-accent:hover{opacity:.85;transform:translateY(-1px);}
+.btn-outline{background:var(--s2);border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:var(--s2);border:1px solid rgba(248,113,113,.3);color:var(--danger);}
+.btn-danger:hover{background:rgba(248,113,113,.1);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+/* ── SETTINGS ── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:800px){.settings-grid{grid-template-columns:1fr;}}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+.setting-row:last-child{border-bottom:none;}
+.setting-label{font-size:13px;font-weight:600;}
+.setting-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* radius slider */
+.slider-wrap input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;margin-top:8px;}
+.radius-display{font-size:22px;font-weight:700;color:var(--accent);}
+
+/* map placeholder */
+.map-box{background:var(--s2);border:1px dashed var(--border);border-radius:10px;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:13px;position:relative;overflow:hidden;margin:12px 0;}
+.map-box::after{content:'';position:absolute;width:60px;height:60px;border-radius:50%;border:2px solid var(--accent);opacity:.2;animation:mp 2.5s ease-out infinite;}
+@keyframes mp{0%{transform:scale(.4);opacity:.5;}100%{transform:scale(2.5);opacity:0;}}
+
+/* live events */
+.event-feed{max-height:280px;overflow-y:auto;}
+.ev-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;background:var(--s2);margin-bottom:5px;font-size:11px;}
+.ev-item .ev-name{font-weight:600;flex:1;}
+.ev-item .ev-time{color:var(--muted);}
+
+/* toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 20px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.5);opacity:0;transition:all .3s;z-index:200;display:flex;align-items:center;gap:8px;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;max-width:400px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.6);}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+/* fb badge */
+.fb-badge{position:fixed;bottom:16px;right:16px;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 11px;z-index:99;}
+.pdot{width:6px;height:6px;border-radius:50%;}
+.pdot.g{background:var(--success);animation:p1 2s infinite;}
+.pdot.y{background:var(--warn);animation:p1 1.2s infinite;}
+.pdot.r{background:var(--danger);}
+@keyframes p1{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ── REPORTS ── */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+.rep-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;}
+.rep-card .rc-lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.06em;margin-bottom:6px;}
+.rep-card .rc-val{font-size:28px;font-weight:700;color:var(--accent);}
+.rep-card .rc-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.rep-period{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+.rep-period button{padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;transition:all .2s;}
+.rep-period button.active{background:rgba(0,229,176,.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.emp-rep-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;background:var(--s2);margin-bottom:6px;}
+.emp-rep-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.emp-rep-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--a2));transition:width .6s cubic-bezier(.4,0,.2,1);}
+.emp-rep-hrs{font-size:12px;font-weight:700;color:var(--a2);min-width:40px;text-align:left;}
+.emp-rep-name{font-size:12px;font-weight:600;min-width:110px;}
+.emp-rep-days{font-size:10px;color:var(--muted);}
+
+/* ── ALERTS PANEL ── */
+.alert-panel{position:fixed;top:70px;left:20px;width:300px;z-index:80;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.alert-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:all;animation:slideIn .3s ease;display:flex;align-items:flex-start;gap:9px;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:translateX(0);}}
+.alert-item.danger{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.06);}
+.alert-item.warn{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.06);}
+.alert-close{margin-right:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;}
+
+/* ── CHANGE PASS ── */
+.pass-strength{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
+.pass-strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;}
+
+/* ── NOTIFICATION BELL ── */
+.notif-btn{position:relative;padding:7px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--muted);cursor:pointer;transition:all .2s;font-size:16px;line-height:1;}
+.notif-btn:hover{border-color:var(--warn);color:var(--warn);}
+.notif-badge{position:absolute;top:-4px;left:-4px;width:16px;height:16px;border-radius:50%;background:var(--danger);font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;display:none;}
+.notif-badge.show{display:flex;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="lc-top">
+      <span class="ico">🏢</span>
+      <h1>لوحة تحكم المدير</h1>
+      <p>نظام الحضور الذكي بـ GPS</p>
+    </div>
+    <div class="lc-body">
+      <div class="field"><label>اسم المستخدم</label><input id="mgLogin" placeholder="admin" /></div>
+      <div class="field"><label>كلمة المرور</label><input id="mgPass" type="password" placeholder="••••••" /></div>
+      <button class="btn-login" onclick="doManagerLogin()">دخول ←</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="brand">📍 حضور GPS</div>
+      <div class="sub">لوحة تحكم المدير</div>
+    </div>
+    <div class="sb-nav">
+      <button class="sb-item active" onclick="goPage('today')"><span class="ico">📅</span>اليوم</button>
+      <button class="sb-item" onclick="goPage('history')"><span class="ico">📋</span>السجل التاريخي</button>
+      <button class="sb-item" onclick="goPage('reports')"><span class="ico">📊</span>التقارير</button>
+      <button class="sb-item" onclick="goPage('employees')"><span class="ico">👥</span>الموظفون</button>
+      <button class="sb-item" onclick="goPage('settings')"><span class="ico">⚙️</span>الإعدادات</button>
+    </div>
+    <div class="sb-bottom">
+      <div class="user-chip">
+        <div class="av" id="mgAv" style="background:var(--accent)">م</div>
+        <div><div class="name" id="mgName">المدير</div><div class="role">مدير النظام</div></div>
+      </div>
+      <button class="btn-out" onclick="doManagerLogout()">تسجيل الخروج</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TODAY -->
+    <div class="page active" id="pageToday">
+      <div class="ph-row page-header">
+        <div><h1>حضور اليوم</h1><p id="todayDateStr">—</p></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="notif-btn" onclick="toggleAlerts()" title="التنبيهات">
+            🔔<span class="notif-badge" id="notifBadge">0</span>
+          </button>
+          <button class="btn btn-outline" onclick="refreshToday()">🔄 تحديث</button>
+          <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat" style="--sc:var(--success)"><div class="lbl">حاضر الآن</div><div class="num" id="stPresent">0</div><div class="sub">موظف في العمل</div></div>
+        <div class="stat" style="--sc:var(--danger)"><div class="lbl">غائب</div><div class="num" id="stAbsent">0</div><div class="sub">لم يسجّل</div></div>
+        <div class="stat" style="--sc:var(--muted)"><div class="lbl">انصرف</div><div class="num" id="stLeft">0</div><div class="sub">أنهى وردیته</div></div>
+        <div class="stat" style="--sc:var(--warn)"><div class="lbl">متأخر</div><div class="num" id="stLate">0</div><div class="sub">تجاوز وقت البدء</div></div>
+        <div class="stat" style="--sc:var(--a2)"><div class="lbl">ساعات اليوم</div><div class="num" id="stHours">0</div><div class="sub">ساعة مجمّعة</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;">
+        <div class="card">
+          <div class="card-head"><h3>جدول الحضور</h3><span style="font-size:11px;color:var(--muted)" id="tableDate">—</span></div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>الموظف</th><th>القسم</th><th>حضور</th><th>انصراف</th><th>الساعات</th><th>المسافة</th><th>الحالة</th>
+            </tr></thead><tbody id="todayTable">
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">لا توجد سجلات اليوم</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><h3>📡 آخر الأحداث</h3></div>
+            <div class="event-feed card-body" id="eventFeed" style="padding:12px">
+              <div style="color:var(--muted);font-size:12px;text-align:center;padding:16px">لا يوجد نشاط</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="pageReports">
+      <div class="ph-row page-header">
+        <div><h1>التقارير</h1><p>تحليل الحضور والساعات لكل موظف</p></div>
+        <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+      </div>
+
+      <div class="rep-period">
+        <button class="active" onclick="setRepPeriod('week',this)">الأسبوع الحالي</button>
+        <button onclick="setRepPeriod('month',this)">الشهر الحالي</button>
+        <button onclick="setRepPeriod('last30',this)">آخر 30 يوم</button>
+        <button onclick="setRepPeriod('all',this)">الكل</button>
+      </div>
+
+      <div class="report-grid">
+        <div class="rep-card"><div class="rc-lbl">إجمالي ساعات العمل</div><div class="rc-val" id="repTotalHours">0</div><div class="rc-sub">ساعة في الفترة المحددة</div></div>
+        <div class="rep-card" style="--accent:var(--success)"><div class="rc-lbl">متوسط يومي</div><div class="rc-val" id="repAvgDaily" style="color:var(--success)">0</div><div class="rc-sub">ساعة/يوم للموظف الواحد</div></div>
+        <div class="rep-card" style="--accent:var(--warn)"><div class="rc-lbl">أيام التأخير</div><div class="rc-val" id="repLateDays" style="color:var(--warn)">0</div><div class="rc-sub">إجمالي تأخيرات الفترة</div></div>
+        <div class="rep-card" style="--accent:var(--a3)"><div class="rc-lbl">أيام العمل</div><div class="rc-val" id="repWorkDays" style="color:var(--a3)">0</div><div class="rc-sub">يوم نشاط مسجّل</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head"><h3>ساعات العمل لكل موظف</h3><span style="font-size:11px;color:var(--muted)" id="repPeriodLabel">الأسبوع الحالي</span></div>
+        <div class="card-body" id="empRepBars" style="max-height:400px;overflow-y:auto">
+          <div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">لا توجد بيانات</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>تفاصيل الحضور لكل موظف</h3></div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>الموظف</th><th>القسم</th><th>أيام الحضور</th><th>أيام التأخير</th><th>إجمالي الساعات</th><th>متوسط يومي</th>
+          </tr></thead><tbody id="repTable">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">لا توجد بيانات</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="pageHistory">
+      <div class="ph-row page-header">
+        <div><h1>السجل التاريخي</h1><p>جميع سجلات الحضور</p></div>
+        <button class="btn btn-outline" onclick="exportCSV()">⬇ CSV</button>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>البحث والفلترة</h3>
+          <div class="filter-row">
+            <input class="finput" type="date" id="histDate" onchange="renderHistory()" style="width:160px"/>
+            <input class="finput" type="text" id="histEmp" placeholder="بحث بالاسم أو القسم..." oninput="renderHistory()" style="width:180px"/>
+            <button class="btn btn-outline btn-sm" onclick="clearFilter()">مسح</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>الموظف</th><th>القسم</th><th>التاريخ</th><th>حضور</th><th>انصراف</th><th>ساعات</th><th>مسافة</th><th>الحالة</th>
+          </tr></thead><tbody id="histTable">
+            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px">لا توجد سجلات</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMPLOYEES -->
+    <div class="page" id="pageEmployees">
+      <div class="page-header"><h1>إدارة الموظفين</h1><p>إضافة وتعديل وحذف الموظفين</p></div>
+
+      <!-- Add form -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head"><h3>➕ إضافة موظف جديد</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div>
+              <div class="flabel">الاسم الكامل *</div>
+              <input class="finput" id="neName" placeholder="أحمد محمد العمري"/>
+            </div>
+            <div>
+              <div class="flabel">رقم الموظف *</div>
+              <input class="finput" id="neId" placeholder="EMP001"/>
+            </div>
+            <div>
+              <div class="flabel">كلمة المرور *</div>
+              <input class="finput" id="nePass" type="password" placeholder="••••••"/>
+            </div>
+            <div>
+              <div class="flabel">القسم</div>
+              <input class="finput" id="neDept" placeholder="خدمة العملاء"/>
+            </div>
+            <div>
+              <div class="flabel">الجوال</div>
+              <input class="finput" id="nePhone" placeholder="05xxxxxxxx"/>
+            </div>
+            <div>
+              <div class="flabel">البريد الإلكتروني</div>
+              <input class="finput" id="neEmail" placeholder="ahmed@company.com"/>
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="addEmployee()">➕ إضافة الموظف</button>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div class="card">
+        <div class="card-head">
+          <h3>قائمة الموظفين</h3>
+          <div class="filter-row">
+            <input class="finput" id="empSearch" placeholder="بحث..." oninput="renderEmployeeList()" style="width:200px"/>
+            <span id="empCount" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr>
+            <th>الموظف</th><th>رقم الموظف</th><th>القسم</th><th>الجوال</th><th>البريد</th><th>إجراءات</th>
+          </tr></thead><tbody id="empTable">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">لا يوجد موظفون</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="pageSettings">
+      <div class="page-header"><h1>الإعدادات</h1><p>ضبط موقع العمل وأوقات الدوام</p></div>
+
+      <div class="settings-grid">
+        <div>
+          <div class="card">
+            <div class="card-head"><h3>📍 موقع العمل</h3></div>
+            <div class="card-body">
+              <div class="flabel">الإحداثيات الحالية</div>
+              <div style="font-size:12px;font-weight:600;color:var(--a2);background:var(--s2);border-radius:8px;padding:10px;margin-bottom:10px;letter-spacing:.03em" id="workCoords">لم يُحدَّد بعد</div>
+              <div class="map-box"><span style="font-size:28px">📍</span><span id="mapLabel">موقع العمل</span></div>
+              <div class="slider-wrap" style="margin-bottom:14px">
+                <div class="flabel">نطاق القبول: <span class="radius-display" id="radiusDisp">100</span> متر</div>
+                <input type="range" min="50" max="1000" step="50" value="100" id="radiusSlider" oninput="updateRadius(this.value)"/>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-accent" onclick="setGPSLocation()">📍 من GPS الحالي</button>
+                <button class="btn btn-outline" onclick="openManualModal()">✏️ إدخال يدوي</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-head"><h3>🕐 أوقات الدوام</h3></div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div><div class="setting-label">بداية الدوام</div></div>
+                <input class="finput" type="time" id="shiftStart" value="08:00" style="width:110px" onchange="saveShift()"/>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-label">نهاية الدوام</div></div>
+                <input class="finput" type="time" id="shiftEnd" value="17:00" style="width:110px" onchange="saveShift()"/>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-label">التأخير المسموح</div><div class="setting-sub">دقائق</div></div>
+                <input class="finput" type="number" id="lateMin" value="15" min="0" max="120" style="width:80px" onchange="saveShift()"/>
+              </div>
+              <button class="btn btn-accent" style="margin-top:14px;width:100%" onclick="saveShift()">💾 حفظ</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>⚠️ إدارة البيانات</h3></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+              <button class="btn btn-outline" onclick="exportCSV()">⬇ تصدير جميع السجلات CSV</button>
+              <button class="btn btn-danger" onclick="confirmClearAll()">🗑 مسح جميع سجلات الحضور</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-head"><h3>🔑 تغيير كلمة مرور المدير</h3></div>
+            <div class="card-body">
+              <div style="margin-bottom:10px">
+                <div class="flabel">كلمة المرور الحالية</div>
+                <input class="finput" type="password" id="cpOld" placeholder="••••••"/>
+              </div>
+              <div style="margin-bottom:6px">
+                <div class="flabel">كلمة المرور الجديدة</div>
+                <input class="finput" type="password" id="cpNew" placeholder="••••••" oninput="checkPassStrength(this.value)"/>
+                <div class="pass-strength"><div class="pass-strength-fill" id="passStrFill" style="width:0%;background:var(--danger)"></div></div>
+              </div>
+              <div style="margin-bottom:14px">
+                <div class="flabel">تأكيد كلمة المرور</div>
+                <input class="finput" type="password" id="cpConfirm" placeholder="••••••"/>
+              </div>
+              <button class="btn btn-accent" style="width:100%" onclick="changeManagerPass()">💾 تغيير كلمة المرور</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /mainApp -->
+
+<!-- ALERTS PANEL -->
+<div class="alert-panel" id="alertPanel"></div>
+
+<!-- EDIT EMPLOYEE MODAL -->
+<div class="modal-overlay hidden" id="editEmpModal">
+  <div class="modal" style="max-width:480px">
+    <h3>✏️ تعديل بيانات الموظف</h3>
+    <p>تعديل معلومات الموظف — رقم الموظف لا يمكن تغييره</p>
+    <input type="hidden" id="editEmpId"/>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div><div class="flabel">الاسم الكامل</div><input class="finput" id="editName" /></div>
+      <div><div class="flabel">كلمة المرور الجديدة</div><input class="finput" type="password" id="editPass" placeholder="اتركه فارغاً للإبقاء على القديمة"/></div>
+      <div><div class="flabel">القسم</div><input class="finput" id="editDept" /></div>
+      <div><div class="flabel">الجوال</div><input class="finput" id="editPhone" /></div>
+      <div class="fg-full"><div class="flabel">البريد الإلكتروني</div><input class="finput" id="editEmail" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEditModal()">إلغاء</button>
+      <button class="btn btn-accent" onclick="saveEditEmployee()">💾 حفظ التعديلات</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL LOCATION MODAL -->
+<div class="modal-overlay hidden" id="manualModal">
+  <div class="modal">
+    <h3>إدخال الموقع يدوياً</h3>
+    <p>أدخل إحداثيات GPS لموقع العمل</p>
+    <div style="margin-bottom:10px">
+      <div class="flabel">خط العرض (Latitude)</div>
+      <input class="finput" id="mLat" placeholder="21.485811"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <div class="flabel">خط الطول (Longitude)</div>
+      <input class="finput" id="mLng" placeholder="39.192505"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeManualModal()">إلغاء</button>
+      <button class="btn btn-accent" onclick="saveManual()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="modal">
+    <h3 id="confTitle">تأكيد</h3>
+    <p id="confMsg">هل أنت متأكد؟</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeConfirm()">إلغاء</button>
+      <button class="btn btn-danger" id="confBtn">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span id="tI">✅</span><span id="tM"></span></div>
+<div class="fb-badge"><div class="pdot y" id="fbDot"></div><span id="fbTxt">يتصل...</span></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ═══════════════════════════════════════════
+// 🔥 FIREBASE CONFIG — ضع إعدادات مشروعك هنا
+// ═══════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCA9li2HkqygTAp0rRqnCwLh2wZvTsQukI",
+  authDomain: "employees-d6766.firebaseapp.com",
+  projectId: "employees-d6766",
+  storageBucket: "employees-d6766.firebasestorage.app",
+  messagingSenderId: "353992589560",
+  appId: "1:353992589560:web:3ff21c94b58725b1e9fb0d",
+  measurementId: "G-15MFMTKHDN"
+};
+// ═══════════════════════════════════════════
+
+const DEMO_MODE = FIREBASE_CONFIG.apiKey === "DEMO_KEY";
+const MGMT_PASS = "1234"; // كلمة مرور المدير
+
+let db = null;
+let workLat = null, workLng = null, allowedRadius = 100;
+
+// ─── LOCAL STORAGE HELPERS ───
+const L = {
+  emps: () => JSON.parse(localStorage.getItem('gpsDemo_employees') || '[]'),
+  setEmps: v => localStorage.setItem('gpsDemo_employees', JSON.stringify(v)),
+  recs: () => JSON.parse(localStorage.getItem('gpsDemo_records') || '[]'),
+  setRecs: v => localStorage.setItem('gpsDemo_records', JSON.stringify(v)),
+  settings: () => JSON.parse(localStorage.getItem('gpsDemo_settings') || '{}'),
+  setSettings: v => localStorage.setItem('gpsDemo_settings', JSON.stringify(v)),
+};
+
+const COLORS = ['#00e5b0','#38bdf8','#a78bfa','#fb923c','#f472b6'];
+const cFor = n => COLORS[n.charCodeAt(0) % COLORS.length];
+
+// ─── INIT ───
+async function init() {
+  if (!DEMO_MODE) {
+    try {
+      const app = initializeApp(FIREBASE_CONFIG);
+      db = getFirestore(app);
+      setFbStatus('y','يتصل...');
+      // اختبار اتصال حقيقي
+      await getDocs(query(collection(db,'employees')));
+      setFbStatus('g','متصل ✓');
+    } catch(e) {
+      console.error('Firebase error:', e.message);
+      if (e.message?.includes('offline') || e.code === 'unavailable') {
+        setFbStatus('y','يتصل...');
+        // أعد المحاولة بعد 3 ثواني
+        setTimeout(async()=>{
+          try { await getDocs(query(collection(db,'employees'))); setFbStatus('g','متصل ✓'); }
+          catch(e2){ setFbStatus('r','تحقق من Firestore'); }
+        }, 3000);
+      } else {
+        setFbStatus('r', 'خطأ: ' + (e.code||e.message||'').slice(0,30));
+      }
+    }
+  } else {
+    setFbStatus('y','وضع تجريبي');
+  }
+  loadSettings();
+}
+
+function setFbStatus(cls, txt) {
+  document.getElementById('fbDot').className = 'pdot ' + cls;
+  document.getElementById('fbTxt').textContent = txt;
+}
+
+// ─── MANAGER LOGIN ───
+window.doManagerLogin = function() {
+  const u = document.getElementById('mgLogin').value.trim();
+  const p = document.getElementById('mgPass').value;
+  const s = L.settings();
+  const currentPass = s.managerPass || MGMT_PASS;
+  if ((u === 'admin' || u === 'مدير') && p === currentPass) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('mgName').textContent = u;
+    document.getElementById('mgAv').textContent = u[0];
+    refreshToday();
+    setTimeout(checkAbsenceAlerts, 2000);
+  } else { toast('❌','بيانات دخول غير صحيحة — المستخدم: admin / كلمة المرور: 1234'); }
+}
+
+window.doManagerLogout = function() {
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mgLogin').value = '';
+  document.getElementById('mgPass').value = '';
+}
+
+// ─── NAVIGATION ───
+window.goPage = function(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page'+p.charAt(0).toUpperCase()+p.slice(1)).classList.add('active');
+  const pages = ['today','history','reports','employees','settings'];
+  document.querySelectorAll('.sb-item')[pages.indexOf(p)]?.classList.add('active');
+  if (p==='today') refreshToday();
+  if (p==='history') renderHistory();
+  if (p==='reports') renderReports('week');
+  if (p==='employees') renderEmployeeList();
+}
+
+// ─── SETTINGS ───
+function loadSettings() {
+  const s = L.settings();
+  workLat = s.workLat || null; workLng = s.workLng || null; allowedRadius = s.radius || 100;
+  document.getElementById('radiusSlider').value = allowedRadius;
+  document.getElementById('radiusDisp').textContent = allowedRadius;
+  if (s.shiftStart) document.getElementById('shiftStart').value = s.shiftStart;
+  if (s.shiftEnd) document.getElementById('shiftEnd').value = s.shiftEnd;
+  if (s.lateMin !== undefined) document.getElementById('lateMin').value = s.lateMin;
+  updateCoordsDisplay();
+}
+
+window.saveShift = function() {
+  const s = L.settings();
+  s.shiftStart = document.getElementById('shiftStart').value;
+  s.shiftEnd = document.getElementById('shiftEnd').value;
+  s.lateMin = parseInt(document.getElementById('lateMin').value);
+  L.setSettings(s); toast('💾','تم حفظ أوقات الدوام');
+}
+
+window.updateRadius = function(v) {
+  allowedRadius = parseInt(v);
+  document.getElementById('radiusDisp').textContent = v;
+  const s = L.settings(); s.radius = allowedRadius; L.setSettings(s);
+}
+
+window.setGPSLocation = function() {
+  if (!navigator.geolocation) { useJeddah(); return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    workLat = p.coords.latitude; workLng = p.coords.longitude;
+    persistLocation(); toast('📍','تم تعيين موقع العمل');
+  }, useJeddah);
+}
+
+function useJeddah() {
+  workLat = 21.485811; workLng = 39.192505;
+  persistLocation(); toast('📍','موقع افتراضي (جدة)');
+}
+
+function persistLocation() {
+  const s = L.settings(); s.workLat = workLat; s.workLng = workLng; L.setSettings(s);
+  updateCoordsDisplay();
+  if (!DEMO_MODE && db) {
+    setDoc(doc(db,'settings','workLocation'), { lat:workLat, lng:workLng, radius:allowedRadius }).catch(()=>{});
+  }
+}
+
+function updateCoordsDisplay() {
+  if (workLat && workLng) {
+    document.getElementById('workCoords').textContent = `${workLat.toFixed(6)}° ، ${workLng.toFixed(6)}°`;
+    document.getElementById('mapLabel').textContent = 'موقع محدد ✅';
+  }
+}
+
+window.openManualModal = () => document.getElementById('manualModal').classList.remove('hidden');
+window.closeManualModal = () => document.getElementById('manualModal').classList.add('hidden');
+window.saveManual = function() {
+  const la = parseFloat(document.getElementById('mLat').value);
+  const lo = parseFloat(document.getElementById('mLng').value);
+  if (isNaN(la)||isNaN(lo)) { toast('❌','إحداثيات غير صحيحة'); return; }
+  workLat=la; workLng=lo; persistLocation(); closeManualModal(); toast('📍','تم حفظ الموقع');
+}
+
+// ─── EMPLOYEES ───
+window.addEmployee = async function() {
+  const name = document.getElementById('neName').value.trim();
+  const id = document.getElementById('neId').value.trim();
+  const pass = document.getElementById('nePass').value;
+  const dept = document.getElementById('neDept').value.trim();
+  const phone = document.getElementById('nePhone').value.trim();
+  const email = document.getElementById('neEmail').value.trim();
+
+  if (!name||!id||!pass) { toast('⚠️','الاسم والرقم وكلمة المرور مطلوبة'); return; }
+
+  const emp = { id, name, password:pass, dept:dept||'—', phone:phone||'—', email:email||'—', createdAt:new Date().toISOString() };
+
+  if (DEMO_MODE) {
+    const emps = L.emps();
+    if (emps.find(e=>e.id===id)) { toast('⚠️','رقم الموظف موجود مسبقاً'); return; }
+    emps.push(emp); L.setEmps(emps);
+  } else {
+    try {
+      const existing = await getDocs(query(collection(db,'employees'),where('id','==',id)));
+      if (!existing.empty) { toast('⚠️','رقم الموظف موجود مسبقاً'); return; }
+      await addDoc(collection(db,'employees'), emp);
+    } catch(e) { toast('❌','فشل الإضافة'); return; }
+  }
+
+  ['neName','neId','nePass','neDept','nePhone','neEmail'].forEach(i=>document.getElementById(i).value='');
+  renderEmployeeList();
+  toast('✅',`تمت إضافة ${name}`);
+}
+
+window.deleteEmployee = async function(id) {
+  if (DEMO_MODE) {
+    L.setEmps(L.emps().filter(e=>e.id!==id));
+  } else {
+    try {
+      const q = query(collection(db,'employees'),where('id','==',id));
+      const snap = await getDocs(q);
+      for (const d of snap.docs) await deleteDoc(d.ref);
+    } catch(e) { toast('❌','فشل الحذف'); return; }
+  }
+  renderEmployeeList(); toast('🗑','تم حذف الموظف');
+}
+
+// ─── TODAY ───
+window.refreshToday = async function() {
+  document.getElementById('todayDateStr').textContent = new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('tableDate').textContent = new Date().toLocaleDateString('ar-SA');
+
+  const today = new Date().toDateString();
+  let recs = [];
+  let emps = [];
+
+  if (DEMO_MODE) {
+    recs = L.recs().filter(r=>new Date(r.time).toDateString()===today);
+    emps = L.emps();
+  } else if (db) {
+    try {
+      const start = new Date(); start.setHours(0,0,0,0);
+      // جلب سجلات اليوم — بدون orderBy لتجنب مشكلة الـ index
+      const qRecs = query(collection(db,'attendance'), where('time','>=',Timestamp.fromDate(start)));
+      const snapRecs = await getDocs(qRecs);
+      recs = snapRecs.docs.map(d=>{
+        const data = d.data();
+        return {...data, time: data.time?.toDate ? data.time.toDate().toISOString() : data.time};
+      });
+      // جلب قائمة الموظفين
+      const snapEmps = await getDocs(collection(db,'employees'));
+      emps = snapEmps.docs.map(d=>d.data());
+    } catch(e) { console.error('refreshToday error:', e); toast('⚠️','خطأ في جلب البيانات: '+e.code); }
+  }
+  const empMap = {};
+  recs.forEach(r=>{
+    if (!empMap[r.empId]) empMap[r.empId]={name:r.empName,id:r.empId,dept:r.dept||'—',inT:null,outT:null,dist:0,late:false,hours:0};
+    if (r.type==='in'){empMap[r.empId].inT=r.time;empMap[r.empId].dist=r.distance;empMap[r.empId].late=r.late||false;}
+    if (r.type==='out'){empMap[r.empId].outT=r.time;empMap[r.empId].hours=parseFloat(r.hoursWorked)||0;}
+  });
+
+  const list = Object.values(empMap);
+  const present=list.filter(e=>e.inT&&!e.outT).length;
+  const left=list.filter(e=>e.inT&&e.outT).length;
+  const late=list.filter(e=>e.late).length;
+  const absent=Math.max(0,emps.length-list.length);
+  const hours=list.reduce((a,e)=>a+e.hours,0).toFixed(1);
+
+  document.getElementById('stPresent').textContent=present;
+  document.getElementById('stLeft').textContent=left;
+  document.getElementById('stLate').textContent=late;
+  document.getElementById('stAbsent').textContent=absent;
+  document.getElementById('stHours').textContent=hours;
+
+  const tbody=document.getElementById('todayTable');
+  tbody.innerHTML = list.length ? list.map(e=>{
+    const st=e.outT?'left':e.inT?'present':'absent';
+    const stL={present:'✅ حاضر',absent:'⭕ غائب',left:'🚪 انصرف'}[st];
+    const hrs=e.hours?`<span class="hours-chip">${e.hours}س</span>`:e.inT&&!e.outT?`<span class="hours-chip" style="background:rgba(52,211,153,.1);color:var(--success)">جارٍ</span>`:'—';
+    return `<tr>
+      <td><div class="emp-cell"><div class="mini-av" style="background:${cFor(e.name)}">${e.name[0]}</div><div><div style="font-weight:600">${e.name}</div><div style="font-size:10px;color:var(--muted)">${e.id}</div></div></div></td>
+      <td style="color:var(--muted)">${e.dept}</td>
+      <td>${e.inT?new Date(e.inT).toLocaleTimeString('ar-SA'):'—'}</td>
+      <td>${e.outT?new Date(e.outT).toLocaleTimeString('ar-SA'):'—'}</td>
+      <td>${hrs}</td>
+      <td>${e.dist?e.dist+' م':'—'}</td>
+      <td><span class="badge b-${st}">${stL}</span>${e.late?' <span class="badge b-late">متأخر</span>':''}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">لا توجد سجلات اليوم</td></tr>';
+
+  // event feed
+  const feed=document.getElementById('eventFeed');
+  const recent=[...recs].reverse().slice(0,12);
+  feed.innerHTML=recent.length?recent.map(r=>`
+    <div class="ev-item">
+      <div class="mini-av" style="background:${cFor(r.empName)};width:24px;height:24px;font-size:10px">${r.empName[0]}</div>
+      <span class="ev-name">${r.empName}</span>
+      <span class="ev-time">${new Date(r.time).toLocaleTimeString('ar-SA')}</span>
+      <span class="badge ${r.type==='in'?'b-present':'b-left'}">${r.type==='in'?'حضور':'انصراف'}</span>
+    </div>`).join('')
+  :'<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px">لا يوجد نشاط</div>';
+}
+
+// ─── HISTORY ───
+async function renderHistory() {
+  const fd = document.getElementById('histDate').value;
+  const fe = (document.getElementById('histEmp').value||'').toLowerCase();
+
+  let recs = [];
+  if (DEMO_MODE) {
+    recs = L.recs();
+  } else if (db) {
+    try {
+      const snap = await getDocs(collection(db,'attendance'));
+      recs = snap.docs.map(d=>{
+        const data = d.data();
+        return {...data, time: data.time?.toDate ? data.time.toDate().toISOString() : data.time};
+      });
+    } catch(e) { console.error('history error:', e); }
+  }
+  const grouped = {};
+  recs.forEach(r=>{
+    const d=new Date(r.time).toDateString();
+    const k=r.empId+'||'+d;
+    if (!grouped[k]) grouped[k]={name:r.empName,id:r.empId,dept:r.dept||'—',date:d,dateISO:new Date(r.time).toLocaleDateString('ar-SA'),inT:null,outT:null,dist:0,late:false,hours:0};
+    if (r.type==='in'){grouped[k].inT=r.time;grouped[k].dist=r.distance;grouped[k].late=r.late||false;}
+    if (r.type==='out'){grouped[k].outT=r.time;grouped[k].hours=parseFloat(r.hoursWorked)||0;}
+  });
+
+  let list=Object.values(grouped).reverse();
+  if (fd) list=list.filter(e=>new Date(e.inT||e.outT).toISOString().slice(0,10)===fd);
+  if (fe) list=list.filter(e=>e.name.toLowerCase().includes(fe)||e.dept.toLowerCase().includes(fe)||e.id.includes(fe));
+
+  const tbody=document.getElementById('histTable');
+  tbody.innerHTML=list.length?list.map(e=>{
+    const st=e.outT?'left':e.inT?'present':'absent';
+    return `<tr>
+      <td><div class="emp-cell"><div class="mini-av" style="background:${cFor(e.name)}">${e.name[0]}</div><span style="font-weight:600">${e.name}</span></div></td>
+      <td style="color:var(--muted)">${e.dept}</td>
+      <td style="color:var(--muted)">${e.dateISO}</td>
+      <td>${e.inT?new Date(e.inT).toLocaleTimeString('ar-SA'):'—'}</td>
+      <td>${e.outT?new Date(e.outT).toLocaleTimeString('ar-SA'):'—'}</td>
+      <td>${e.hours?`<span class="hours-chip">${e.hours}س</span>`:'—'}</td>
+      <td>${e.dist?e.dist+' م':'—'}</td>
+      <td><span class="badge b-${st}">${{present:'✅ حاضر',absent:'⭕ غائب',left:'🚪 انصرف'}[st]}</span>${e.late?' <span class="badge b-late">متأخر</span>':''}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px">لا توجد سجلات</td></tr>';
+}
+
+window.clearFilter = function() {
+  document.getElementById('histDate').value='';
+  document.getElementById('histEmp').value='';
+  renderHistory();
+}
+
+// ─── EXPORT ───
+window.exportCSV = async function() {
+  let recs = [];
+  if (DEMO_MODE) {
+    recs = L.recs();
+  } else if (db) {
+    try {
+      const snap = await getDocs(collection(db,'attendance'));
+      recs = snap.docs.map(d=>{
+        const data = d.data();
+        return {...data, time: data.time?.toDate ? data.time.toDate().toISOString() : data.time};
+      });
+    } catch(e) { toast('❌','فشل تحميل البيانات'); return; }
+  }
+  if (!recs.length) { toast('⚠️','لا توجد بيانات'); return; }
+  const h='الاسم,رقم الموظف,القسم,النوع,التاريخ,الوقت,المسافة(م),الساعات,متأخر\n';
+  const rows=recs.map(r=>{
+    const d=new Date(r.time);
+    return `${r.empName},${r.empId},${r.dept||'—'},${r.type==='in'?'حضور':'انصراف'},${d.toLocaleDateString('ar-SA')},${d.toLocaleTimeString('ar-SA')},${r.distance||0},${r.hoursWorked||''},${r.late?'نعم':'لا'}`;
+  }).join('\n');
+  const b=new Blob(['\uFEFF'+h+rows],{type:'text/csv;charset=utf-8'});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=`attendance_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u);
+  toast('⬇','تم تصدير الملف');
+}
+
+window.confirmClearAll = function() {
+  document.getElementById('confTitle').textContent='مسح جميع السجلات';
+  document.getElementById('confMsg').textContent='سيتم حذف جميع سجلات الحضور نهائياً. هل تريد المتابعة؟';
+  document.getElementById('confBtn').onclick = async ()=>{
+    if (DEMO_MODE) {
+      L.setRecs([]);
+    } else if (db) {
+      try {
+        const snap = await getDocs(collection(db,'attendance'));
+        for (const d of snap.docs) await deleteDoc(d.ref);
+      } catch(e) { toast('❌','فشل المسح'); closeConfirm(); return; }
+    }
+    closeConfirm(); refreshToday(); renderHistory(); toast('🗑','تم مسح جميع السجلات');
+  };
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+window.closeConfirm = () => document.getElementById('confirmModal').classList.add('hidden');
+
+// ─── TOAST ───
+let tT;
+function toast(icon,msg) {
+  document.getElementById('tI').textContent=icon;
+  document.getElementById('tM').textContent=msg;
+  const t=document.getElementById('toast');
+  t.classList.add('show'); clearTimeout(tT);
+  tT=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// expose for buttons
+window.renderEmployeeList = renderEmployeeList;
+window.renderHistory = renderHistory;
+
+// ─── EDIT EMPLOYEE ───
+window.openEditModal = async function(id) {
+  let emp = null;
+  if (DEMO_MODE) {
+    emp = L.emps().find(e=>e.id===id);
+  } else if (db) {
+    try {
+      const snap = await getDocs(query(collection(db,'employees'),where('id','==',id)));
+      if (!snap.empty) emp = snap.docs[0].data();
+    } catch(e) {}
+  }
+  if (!emp) return;
+  document.getElementById('editEmpId').value = id;
+  document.getElementById('editName').value = emp.name;
+  document.getElementById('editPass').value = '';
+  document.getElementById('editDept').value = emp.dept||'';
+  document.getElementById('editPhone').value = emp.phone||'';
+  document.getElementById('editEmail').value = emp.email||'';
+  document.getElementById('editEmpModal').classList.remove('hidden');
+}
+window.closeEditModal = () => document.getElementById('editEmpModal').classList.add('hidden');
+
+window.saveEditEmployee = async function() {
+  const id = document.getElementById('editEmpId').value;
+  const updates = {
+    name: document.getElementById('editName').value.trim(),
+    dept: document.getElementById('editDept').value.trim(),
+    phone: document.getElementById('editPhone').value.trim(),
+    email: document.getElementById('editEmail').value.trim(),
+  };
+  const newPass = document.getElementById('editPass').value;
+  if (newPass) updates.password = newPass;
+
+  if (DEMO_MODE) {
+    const emps = L.emps();
+    const idx = emps.findIndex(e=>e.id===id);
+    if (idx!==-1) { Object.assign(emps[idx], updates); L.setEmps(emps); }
+  } else if (db) {
+    try {
+      const snap = await getDocs(query(collection(db,'employees'),where('id','==',id)));
+      for (const d of snap.docs) await setDoc(d.ref, updates, {merge:true});
+    } catch(e) { toast('❌','فشل التحديث'); return; }
+  }
+  closeEditModal();
+  renderEmployeeList();
+  toast('✅','تم تحديث بيانات الموظف');
+}
+
+// ─── RENDER EMPLOYEE LIST (updated with edit button) ───
+window.renderEmployeeList = async function() {
+  const search = (document.getElementById('empSearch')?.value||'').toLowerCase();
+  let emps = [];
+  if (DEMO_MODE) {
+    emps = L.emps();
+  } else if (db) {
+    try {
+      const snap = await getDocs(collection(db,'employees'));
+      emps = snap.docs.map(d=>d.data());
+    } catch(e) { console.error('employees error:', e); }
+  }
+  if (search) emps = emps.filter(e=>e.name.toLowerCase().includes(search)||e.id.includes(search)||(e.dept||'').toLowerCase().includes(search));
+  document.getElementById('empCount').textContent = `${emps.length} موظف`;
+  const tbody = document.getElementById('empTable');
+  if (!emps.length) {
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">لا يوجد موظفون مسجّلون</td></tr>'; return;
+  }
+  tbody.innerHTML = emps.map(e=>`
+    <tr>
+      <td><div class="emp-cell"><div class="mini-av" style="background:${cFor(e.name)}">${e.name[0]}</div><div><div style="font-weight:600">${e.name}</div></div></div></td>
+      <td style="color:var(--muted);font-size:11px">${e.id}</td>
+      <td>${e.dept||'—'}</td>
+      <td style="color:var(--muted)">${e.phone||'—'}</td>
+      <td style="color:var(--muted)">${e.email||'—'}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm" onclick="openEditModal('${e.id}')">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${e.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ─── REPORTS ───
+let repPeriod = 'week';
+
+window.setRepPeriod = function(p, btn) {
+  repPeriod = p;
+  document.querySelectorAll('.rep-period button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderReports(p);
+}
+
+function getPeriodStart(p) {
+  const now = new Date();
+  if (p==='week') { const d=new Date(now); d.setDate(now.getDate()-now.getDay()); d.setHours(0,0,0,0); return d; }
+  if (p==='month') { return new Date(now.getFullYear(),now.getMonth(),1); }
+  if (p==='last30') { const d=new Date(now); d.setDate(now.getDate()-30); return d; }
+  return new Date(0);
+}
+
+function renderReports(p='week') {
+  repPeriod = p;
+  const start = getPeriodStart(p);
+  const labels = {week:'الأسبوع الحالي',month:'الشهر الحالي',last30:'آخر 30 يوم',all:'جميع الفترات'};
+  document.getElementById('repPeriodLabel').textContent = labels[p];
+
+  const doRender = (recs) => {
+    recs = recs.filter(r => new Date(r.time) >= start);
+    const empMap = {};
+    recs.forEach(r => {
+      if (!empMap[r.empId]) empMap[r.empId]={name:r.empName,id:r.empId,dept:r.dept||'—',days:new Set(),hours:0,lateDays:0};
+      const day = new Date(r.time).toDateString();
+      if (r.type==='in') { empMap[r.empId].days.add(day); if(r.late) empMap[r.empId].lateDays++; }
+      if (r.type==='out') empMap[r.empId].hours += parseFloat(r.hoursWorked)||0;
+    });
+    const list = Object.values(empMap).map(e=>({...e,days:e.days.size})).sort((a,b)=>b.hours-a.hours);
+    const totalHours = list.reduce((a,e)=>a+e.hours,0);
+    const totalDays = new Set(recs.map(r=>new Date(r.time).toDateString())).size;
+    const avgDaily = list.length && totalDays ? (totalHours/(list.length*totalDays||1)).toFixed(1) : 0;
+    const lateDays = list.reduce((a,e)=>a+e.lateDays,0);
+    const maxHours = list[0]?.hours || 1;
+    document.getElementById('repTotalHours').textContent = totalHours.toFixed(1);
+    document.getElementById('repAvgDaily').textContent = avgDaily;
+    document.getElementById('repLateDays').textContent = lateDays;
+    document.getElementById('repWorkDays').textContent = totalDays;
+    const barsEl = document.getElementById('empRepBars');
+    barsEl.innerHTML = list.length ? list.map(e=>`
+      <div class="emp-rep-row">
+        <div class="mini-av" style="background:${cFor(e.name)}">${e.name[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span class="emp-rep-name">${e.name}</span>
+            <span class="emp-rep-days">${e.days} يوم${e.lateDays?` · <span style="color:var(--warn)">${e.lateDays} تأخير</span>`:''}</span>
+          </div>
+          <div class="emp-rep-bar-wrap"><div class="emp-rep-bar" style="width:${(e.hours/maxHours*100).toFixed(0)}%"></div></div>
+        </div>
+        <span class="emp-rep-hrs">${e.hours.toFixed(1)}س</span>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">لا توجد بيانات</div>';
+    const tbody = document.getElementById('repTable');
+    tbody.innerHTML = list.length ? list.map(e=>{
+      const avg = e.days ? (e.hours/e.days).toFixed(1) : 0;
+      return `<tr>
+        <td><div class="emp-cell"><div class="mini-av" style="background:${cFor(e.name)}">${e.name[0]}</div><span style="font-weight:600">${e.name}</span></div></td>
+        <td style="color:var(--muted)">${e.dept}</td>
+        <td><span class="hours-chip">${e.days}</span></td>
+        <td>${e.lateDays?`<span class="badge b-late">${e.lateDays}</span>`:'—'}</td>
+        <td><span class="hours-chip">${e.hours.toFixed(1)}س</span></td>
+        <td style="color:var(--muted)">${avg}س</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">لا توجد بيانات</td></tr>';
+  };
+
+  if (DEMO_MODE) {
+    doRender(L.recs());
+  } else if (db) {
+    getDocs(collection(db,'attendance')).then(snap=>{
+      const recs = snap.docs.map(d=>{const data=d.data();return{...data,time:data.time?.toDate?data.time.toDate().toISOString():data.time};});
+      doRender(recs);
+    }).catch(()=>doRender([]));
+  }
+}
+
+// ─── ALERTS ───
+let alertsVisible = false;
+let alertList = [];
+
+window.toggleAlerts = function() {
+  alertsVisible = !alertsVisible;
+  checkAbsenceAlerts();
+}
+
+function checkAbsenceAlerts() {
+  const s = L.settings();
+  if (!s.shiftStart) return;
+  const [sh,sm] = s.shiftStart.split(':').map(Number);
+  const lateMin = s.lateMin||15;
+  const now = new Date();
+  const limitTime = new Date(now); limitTime.setHours(sh,sm+lateMin+30,0,0);
+  if (now < limitTime) return;
+
+  const today = new Date().toDateString();
+  const doCheck = (recs, allEmps) => {
+    const presentIds = new Set(recs.filter(r=>r.type==='in' && new Date(r.time).toDateString()===today).map(r=>r.empId));
+    const absentEmps = allEmps.filter(e=>!presentIds.has(e.id));
+    const panel = document.getElementById('alertPanel');
+    const badge = document.getElementById('notifBadge');
+    if (alertsVisible && absentEmps.length) {
+      panel.innerHTML = absentEmps.map(e=>`
+        <div class="alert-item danger">
+          <span>🔴</span>
+          <div style="flex:1"><b>${e.name}</b><br><span style="color:var(--muted);font-size:10px">${e.dept||'—'} · لم يسجّل حضوره</span></div>
+          <button class="alert-close" onclick="this.parentElement.remove()">✕</button>
+        </div>`).join('');
+    } else if (!alertsVisible) { panel.innerHTML=''; }
+    if (absentEmps.length) { badge.textContent=absentEmps.length; badge.classList.add('show'); }
+    else { badge.classList.remove('show'); }
+  };
+
+  if (DEMO_MODE) {
+    doCheck(L.recs(), L.emps());
+  } else if (db) {
+    Promise.all([getDocs(collection(db,'attendance')), getDocs(collection(db,'employees'))]).then(([snapR,snapE])=>{
+      const recs=snapR.docs.map(d=>{const data=d.data();return{...data,time:data.time?.toDate?data.time.toDate().toISOString():data.time};});
+      doCheck(recs, snapE.docs.map(d=>d.data()));
+    }).catch(()=>{});
+  }
+}
+
+// ─── CHANGE MANAGER PASSWORD ───
+window.checkPassStrength = function(v) {
+  const fill = document.getElementById('passStrFill');
+  let score = 0;
+  if (v.length>=6) score++;
+  if (v.length>=10) score++;
+  if (/[A-Z]/.test(v)||/[a-z]/.test(v)) score++;
+  if (/\d/.test(v)) score++;
+  const colors=['#f87171','#fbbf24','#fbbf24','#34d399','#00e5b0'];
+  fill.style.width=(score/4*100)+'%';
+  fill.style.background=colors[score];
+}
+
+window.changeManagerPass = function() {
+  const old = document.getElementById('cpOld').value;
+  const nw = document.getElementById('cpNew').value;
+  const confirm = document.getElementById('cpConfirm').value;
+  const s = L.settings();
+  const currentPass = s.managerPass || '1234';
+  if (old !== currentPass) { toast('❌','كلمة المرور الحالية غير صحيحة'); return; }
+  if (nw.length < 4) { toast('⚠️','كلمة المرور الجديدة قصيرة جداً'); return; }
+  if (nw !== confirm) { toast('⚠️','كلمتا المرور غير متطابقتين'); return; }
+  s.managerPass = nw;
+  L.setSettings(s);
+  ['cpOld','cpNew','cpConfirm'].forEach(id=>document.getElementById(id).value='');
+  toast('🔑','تم تغيير كلمة المرور بنجاح');
+}
+
+// ─── REAL-TIME SIMULATION (demo: poll every 8s) ───
+function startRealTimeSync() {
+  setInterval(()=>{
+    if (document.getElementById('pageToday').classList.contains('active')) refreshToday();
+    checkAbsenceAlerts();
+  }, 8000);
+}
+
+init();
+startRealTimeSync();
+</script>
+</body>
+</html>
